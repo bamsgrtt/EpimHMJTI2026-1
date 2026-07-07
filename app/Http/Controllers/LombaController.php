@@ -130,14 +130,12 @@ class LombaController extends Controller
         $rules['nis_nim_ketua'] = 'required|string|max:50|not_regex:/<[^>]*>/';
         $rules['hp_ketua'] = $phoneRule;
 
-        if ($idLomba == 1 || $idLomba == 2) {
+        if (in_array($idLomba, [1, 2, 4])) {
             $rules['nama_tim'] = $noHtmlText;
             $rules['asal_sekolah'] = $noHtmlText;
             $rules['guru_pembimbing'] = $noHtmlText;
-            $rules['proposal'] = 'required|file|mimes:pdf|max:10240';
-            // $rules['subtema'] = 'required|string|in:Manajemen absensi,Perpustakaan,Ekstrakurikuler,Kantin sehat';
 
-            // Anggota 1 is required for Web Programming/Network Engineering because min 2 people (Ketua + Anggota 1)
+            // Anggota 1 is required for team categories (min 2 people: Ketua + Anggota 1)
             $rules['anggota_1'] = $noHtmlText;
             $rules['anggota_nis_1'] = 'required|string|max:50|not_regex:/<[^>]*>/';
             $rules['hp_1'] = $phoneRule;
@@ -146,16 +144,18 @@ class LombaController extends Controller
             $rules['anggota_2'] = 'nullable|string|max:150|not_regex:/<[^>]*>/';
             $rules['anggota_nis_2'] = 'nullable|string|max:50|not_regex:/<[^>]*>/';
             $rules['hp_2'] = 'nullable|string|max:20|regex:/^[0-9+\-\s]*$/|not_regex:/<[^>]*>/';
+
+            if ($idLomba == 4) {
+                $rules['link_video_karya'] = 'required|url|max:500';
+            } else {
+                $rules['proposal'] = 'required|file|mimes:pdf|max:10240';
+            }
         } else {
             // ID 3 (Design Packaging), ID 5 (Cyber Security) require proposal/berkas
             if (in_array($idLomba, [3, 5])) {
                 $rules['proposal'] = 'required|file|mimes:pdf|max:10240';
             } else {
                 $rules['proposal'] = 'nullable|file|mimes:pdf|max:10240';
-            }
-
-            if ($idLomba == 4) {
-                $rules['link_video_karya'] = 'required|url|max:500';
             }
         }
 
@@ -203,6 +203,11 @@ class LombaController extends Controller
             $tim->asal_sekolah = $validated['asal_sekolah'];
             $tim->guru_pembimbing = $validated['guru_pembimbing'];
             $tim->no_hp = auth()->user()->nomor_telp ?? '08xxxxxxxxxx';
+        } else if ($idLomba == 4) {
+            $tim->nama_tim = $validated['nama_tim'];
+            $tim->asal_sekolah = $validated['asal_sekolah'];
+            $tim->guru_pembimbing = $validated['guru_pembimbing'];
+            $tim->no_hp = auth()->user()->nomor_telp ?? '08xxxxxxxxxx';
         } else {
             $tim->nama_tim = $validated['nama_ketua'];
             $tim->asal_sekolah = auth()->user()->institusi ?? '-';
@@ -234,6 +239,13 @@ class LombaController extends Controller
             $pendaftar->anggota_2 = $request->anggota_2 ?? null;
             $pendaftar->anggota_nis_2 = $request->anggota_nis_2 ?? null;
             $pendaftar->hp_2 = $request->hp_2 ?? null;
+        } else if ($idLomba == 4) {
+            $pendaftar->anggota_1 = $validated['anggota_1'];
+            $pendaftar->anggota_nis_1 = $validated['anggota_nis_1'];
+            $pendaftar->hp_1 = $validated['hp_1'];
+            $pendaftar->anggota_2 = $request->anggota_2 ?? null;
+            $pendaftar->anggota_nis_2 = $request->anggota_nis_2 ?? null;
+            $pendaftar->hp_2 = $request->hp_2 ?? null;
         }
 
 
@@ -253,7 +265,7 @@ class LombaController extends Controller
         // Ambil nama kategori lomba secara dinamis untuk penamaan file
         $kategoriModel = \App\Models\KategoriLomba::find($idLomba);
         $slugLomba = \Illuminate\Support\Str::slug($kategoriModel->nama_lomba ?? 'lomba', '_');
-        $namaIdentifier = $idLomba == 1 || $idLomba == 2 ? $validated['nama_ketua'] . '_' . $validated['nama_tim'] : $validated['nama_ketua'];
+        $namaIdentifier = in_array($idLomba, [1, 2, 4]) ? $validated['nama_ketua'] . '_' . $validated['nama_tim'] : $validated['nama_ketua'];
         $slugNama = \Illuminate\Support\Str::slug($namaIdentifier, '_');
 
         $updateData = [];

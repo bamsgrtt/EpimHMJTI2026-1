@@ -1473,8 +1473,8 @@
             proposalInput.disabled = true;
         }
 
-        if (val == '1' || val == '2') {
-            // Web Programming & Network Engineering
+        if (val == '1' || val == '2' || val == '4') {
+            // Web Programming, Network Engineering & Videography (team format)
             webProgFields.style.display = 'block';
             nonWebProgFields.style.display = 'none';
 
@@ -1484,7 +1484,7 @@
                 input.disabled = true;
             });
 
-            // Enable Web Programming inputs
+            // Enable team inputs
             webProgFields.querySelectorAll('input:not([name^="anggota_2"]):not([name^="hp_2"])').forEach(input => {
                 input.required = true;
                 input.disabled = false;
@@ -1494,16 +1494,32 @@
                 input.disabled = false;
             });
 
-            proposalInputGroup.style.display = 'block';
-            proposalInput.required = true;
-            proposalInput.disabled = false;
-            
-            proposalInput.accept = '.pdf';
-            const label = proposalInputGroup.querySelector('label');
-            if (val == '2') {
-                if (label) label.innerHTML = 'Upload Proposal / Desain Topologi <span style="color:#EF4444;">*</span> (PDF, maks 10MB)';
+            if (val == '4') {
+                // Videography: link video, no proposal
+                proposalInputGroup.style.display = 'none';
+                if (proposalInput) {
+                    proposalInput.required = false;
+                    proposalInput.disabled = true;
+                }
+                linkVideoInputGroup.style.display = 'block';
+                linkVideoInput.required = true;
+                linkVideoInput.disabled = false;
             } else {
-                if (label) label.innerHTML = 'Upload Proposal <span style="color:#EF4444;">*</span> (PDF, maks 10MB)';
+                proposalInputGroup.style.display = 'block';
+                proposalInput.required = true;
+                proposalInput.disabled = false;
+                proposalInput.accept = '.pdf';
+                linkVideoInputGroup.style.display = 'none';
+                if (linkVideoInput) {
+                    linkVideoInput.required = false;
+                    linkVideoInput.disabled = true;
+                }
+                const label = proposalInputGroup.querySelector('label');
+                if (val == '2') {
+                    if (label) label.innerHTML = 'Upload Proposal / Desain Topologi <span style="color:#EF4444;">*</span> (PDF, maks 10MB)';
+                } else {
+                    if (label) label.innerHTML = 'Upload Proposal <span style="color:#EF4444;">*</span> (PDF, maks 10MB)';
+                }
             }
 
             if (subtemaInputGroup) {
@@ -1522,19 +1538,19 @@
                 }
             }
         } else {
-            // Non Web-Programming / Non Network-Engineering
+            // Non team categories
             webProgFields.style.display = 'none';
             nonWebProgFields.style.display = 'block';
             document.getElementById('anggotaContainer').innerHTML = '';
             refreshAnggotaBtn();
 
-            // Disable all Web Programming inputs
+            // Disable all team inputs
             webProgFields.querySelectorAll('input').forEach(input => {
                 input.required = false;
                 input.disabled = true;
             });
 
-            // Enable non-Web Programming inputs
+            // Enable non-team inputs
             nonWebProgFields.querySelectorAll('input').forEach(input => {
                 input.required = true;
                 input.disabled = false;
@@ -1556,10 +1572,10 @@
                 subtemaInput.disabled = true;
             }
 
-            if (val == '4') { // Videography (in db, ID 4 is Videography)
-                linkVideoInputGroup.style.display = 'block';
-                linkVideoInput.required = true;
-                linkVideoInput.disabled = false;
+            if (linkVideoInputGroup) linkVideoInputGroup.style.display = 'none';
+            if (linkVideoInput) {
+                linkVideoInput.required = false;
+                linkVideoInput.disabled = true;
             }
         }
     }
@@ -1574,7 +1590,7 @@
 
     function tambahAnggota() {
         if (countAnggota() >= 1) {
-            alert('Maksimal 3 anggota (Ketua + 2 Anggota) untuk Web Programming / Network Engineering.');
+            alert('Maksimal 3 anggota (Ketua + 2 Anggota) untuk Web Programming, Network Engineering, dan Videografi.');
             return;
         }
         if (document.getElementById('anggotaBlock-2')) return;
