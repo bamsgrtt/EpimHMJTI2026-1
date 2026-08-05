@@ -1483,10 +1483,10 @@
                             Pastikan file Anda sudah diberi nama sesuai format berikut sebelum diunggah:
                         </p>
                         <code style="display:block; background:rgba(0,0,0,0.3); border-radius:6px; padding:6px 10px; color:#FCD34D; font-size:0.8rem; word-break:break-all;">
-                            PENYISIHAN_EPIM2026_<span style="color:#86EFAC;">NAMA TIM</span>_<span style="color:#93C5FD;">ASAL SEKOLAH</span>.pdf
+                            PENYISIHAN_EPIM2026_<span style="color:#86EFAC;">NAMA TIM</span>_<span style="color:#93C5FD;">KATEGORI_ASAL SEKOLAH</span>.pdf
                         </code>
                         <p style="color:#6B7280; margin:6px 0 0; font-size:0.78rem;">
-                            Contoh: <span style="color:#E5E7EB; font-style:italic;">PENYISIHAN_EPIM2026_NETWARRIOR_SMKN1JEMBER.pdf</span>
+                            Contoh: <span style="color:#E5E7EB; font-style:italic;">PENYISIHAN_EPIM2026_NETWARRIOR_NETWORKING_SMKN1JEMBER.pdf</span>
                         </p>
                     </div>
                     <label>Upload Proposal <span style="color:#EF4444;">*</span> (PDF, maks 2MB)</label>
