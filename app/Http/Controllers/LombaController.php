@@ -260,7 +260,14 @@ class LombaController extends Controller
 
         if ($request->hasFile('proposal')) {
             $f = $request->file('proposal');
-            $filename = 'proposal_' . $slugLomba . '_' . $slugNama . '_reg' . $pendaftar->id . '_' . \Illuminate\Support\Str::random(4) . '.' . $f->getClientOriginalExtension();
+            // Network Engineering (ID 2): gunakan nama file asli dari user (disanitasi)
+            if ($idLomba == 2) {
+                $rawName = pathinfo($f->getClientOriginalName(), PATHINFO_FILENAME);
+                $ext     = $f->getClientOriginalExtension();
+                $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $rawName) . '.' . $ext;
+            } else {
+                $filename = 'proposal_' . $slugLomba . '_' . $slugNama . '_reg' . $pendaftar->id . '_' . \Illuminate\Support\Str::random(4) . '.' . $f->getClientOriginalExtension();
+            }
             $f->move(public_path('uploads/proposal'), $filename);
             $pendaftar->proposal = $filename;
             $updateData['proposal'] = $filename;
@@ -359,10 +366,17 @@ class LombaController extends Controller
 
         if ($request->hasFile('proposal')) {
             $file = $request->file('proposal');
-            $slugLomba = \Illuminate\Support\Str::slug($data->kategori->nama_lomba ?? 'lomba', '_');
-            $namaIdentifier = $data->id_lomba == 1 || $data->id_lomba == 2 ? $data->nama_ketua . '_' . ($data->tim->nama_tim ?? '') : $data->nama_ketua;
-            $slugNama = \Illuminate\Support\Str::slug($namaIdentifier, '_');
-            $nama_file = 'proposal_' . $slugLomba . '_' . $slugNama . '_reg' . $data->id . '_' . \Illuminate\Support\Str::random(4) . '.' . $file->getClientOriginalExtension();
+            // Network Engineering (ID 2): gunakan nama file asli dari user (disanitasi)
+            if ($data->id_lomba == 2) {
+                $rawName  = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $ext      = $file->getClientOriginalExtension();
+                $nama_file = preg_replace('/[^A-Za-z0-9_\-]/', '_', $rawName) . '.' . $ext;
+            } else {
+                $slugLomba = \Illuminate\Support\Str::slug($data->kategori->nama_lomba ?? 'lomba', '_');
+                $namaIdentifier = $data->id_lomba == 1 || $data->id_lomba == 2 ? $data->nama_ketua . '_' . ($data->tim->nama_tim ?? '') : $data->nama_ketua;
+                $slugNama = \Illuminate\Support\Str::slug($namaIdentifier, '_');
+                $nama_file = 'proposal_' . $slugLomba . '_' . $slugNama . '_reg' . $data->id . '_' . \Illuminate\Support\Str::random(4) . '.' . $file->getClientOriginalExtension();
+            }
             $file->move(public_path('uploads/proposal'), $nama_file);
 
             $data->proposal = $nama_file;

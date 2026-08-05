@@ -1381,6 +1381,20 @@
 
                 <!-- Proposal Upload (only shown and required for web programming & packaging) -->
                 <div class="form-group" id="proposalInputGroup" style="display:none;">
+                    <div id="networkFormatNote" style="display:none; background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.3); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; font-size: 0.82rem; line-height: 1.6;">
+                        <p style="color:#F97316; font-weight:700; margin:0 0 6px; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-circle-info"></i> Format Penamaan File
+                        </p>
+                        <p style="color:#D1D5DB; margin:0 0 4px;">
+                            Pastikan file Anda sudah diberi nama sesuai format berikut sebelum diunggah:
+                        </p>
+                        <code style="display:block; background:rgba(0,0,0,0.3); border-radius:6px; padding:6px 10px; color:#FCD34D; font-size:0.8rem; word-break:break-all;">
+                            PENYISIHAN_EPIM2026_<span style="color:#86EFAC;">NAMA TIM</span>_<span style="color:#93C5FD;">ASAL SEKOLAH</span>.pdf
+                        </code>
+                        <p style="color:#6B7280; margin:6px 0 0; font-size:0.78rem;">
+                            Contoh: <span style="color:#E5E7EB; font-style:italic;">PENYISIHAN_EPIM2026_NETWARRIOR_SMKN1JEMBER.pdf</span>
+                        </p>
+                    </div>
                     <label>Upload Proposal <span style="color:#EF4444;">*</span> (PDF, maks 2MB)</label>
                     <input type="file" name="proposal" id="proposalInput" class="form-control" accept=".pdf">
                     @error('proposal') <span class="form-error">{{ $message }}</span> @enderror
@@ -1500,10 +1514,13 @@
             
             proposalInput.accept = '.pdf';
             const label = proposalInputGroup.querySelector('label');
+            const networkFormatNote = document.getElementById('networkFormatNote');
             if (val == '2') {
                 if (label) label.innerHTML = 'Upload Proposal / Desain Topologi <span style="color:#EF4444;">*</span> (PDF, maks 10MB)';
+                if (networkFormatNote) networkFormatNote.style.display = 'block';
             } else {
                 if (label) label.innerHTML = 'Upload Proposal <span style="color:#EF4444;">*</span> (PDF, maks 10MB)';
+                if (networkFormatNote) networkFormatNote.style.display = 'none';
             }
 
             if (subtemaInputGroup) {
