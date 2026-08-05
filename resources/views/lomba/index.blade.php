@@ -608,9 +608,9 @@
 @foreach ($datas as $data)
     <div id="modalDetail{{ $data->id }}" class="modal">
         <div class="modal-content">
-            <h3>{{ in_array($data->id_lomba, [1, 2]) ? 'Detail Tim' : 'Detail Peserta' }}</h3>
+            <h3>{{ $data->tim && $data->tim->nama_tim ? 'Detail Tim' : 'Detail Peserta' }}</h3>
             <div class="detail-grid">
-                @if(in_array($data->id_lomba, [1, 2]))
+                @if($data->tim && $data->tim->nama_tim)
                 <div class="detail-item">
                     <label>Nama Tim</label>
                     <strong>{{ $data->tim->nama_tim ?? 'N/A' }}</strong>
@@ -620,7 +620,7 @@
                     <label>Kategori Lomba</label>
                     <strong>{{ $data->kategori->nama_lomba ?? 'N/A' }}</strong>
                 </div>
-                @if(in_array($data->id_lomba, [1, 2]))
+                @if($data->tim && $data->tim->nama_tim)
                 <div class="detail-item">
                     <label>Asal Sekolah</label>
                     <strong>{{ $data->tim->asal_sekolah ?? 'N/A' }}</strong>
@@ -632,11 +632,11 @@
                 @endif
                 <hr class="detail-separator">
                 <div class="detail-item">
-                    <label>{{ in_array($data->id_lomba, [1, 2]) ? 'Ketua' : 'Nama' }}</label>
+                    <label>{{ $data->tim && $data->tim->nama_tim ? 'Ketua' : 'Nama' }}</label>
                     <strong>{{ $data->nama_ketua ?? 'N/A' }}@if($data->nis_nim_ketua) (NIM/NIS: {{ $data->nis_nim_ketua }})@endif</strong>
                 </div>
                 <div class="detail-item">
-                    <label>{{ in_array($data->id_lomba, [1, 2]) ? 'No WA Ketua' : 'No WA' }}</label>
+                    <label>{{ $data->tim && $data->tim->nama_tim ? 'No WA Ketua' : 'No WA' }}</label>
                     <strong>{{ $data->hp_ketua ?? 'N/A' }}</strong>
                 </div>
                 @if($data->anggota_1)
@@ -1263,12 +1263,106 @@
                     </div>
 
                     <div id="anggotaContainer"></div>
-                    <button type="button" id="tambahAnggotaBtn" class="btn btn-outline" style="width:100%; margin-top:10px;" onclick="tambahAnggota()">
+                    <button type="button" class="btn btn-outline" style="width:100%; margin-top:10px;" onclick="tambahAnggota()">
                         <i class="fa-solid fa-plus"></i> Tambah Anggota (Anggota 2)
                     </button>
                 </div>
 
-                <!-- Non-Web Programming Fields -->
+                {{-- Individual fields (Videografi & Desain Packaging — before clicking Tambah Anggota) --}}
+                <div id="individualFields" style="display:none;">
+                    <div class="form-group">
+                        <label>Nama <span style="color:#EF4444;">*</span></label>
+                        <input type="text" name="nama_ketua" class="form-control" value="{{ old('nama_ketua') }}" pattern="^[^<>]+$">
+                        @error('nama_ketua') <span class="form-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label id="lblNisIndividual">NIM/NIS <span style="color:#EF4444;">*</span></label>
+                        <input type="text" name="nis_nim_ketua" class="form-control" value="{{ old('nis_nim_ketua') }}" placeholder="Contoh: 12345678">
+                        @error('nis_nim_ketua') <span class="form-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>No WA <span style="color:#EF4444;">*</span></label>
+                        <input type="text" name="hp_ketua" class="form-control" value="{{ old('hp_ketua') }}" placeholder="08xxx" pattern="^[0-9+\-\s]+$">
+                        @error('hp_ketua') <span class="form-error">{{ $message }}</span> @enderror
+                    </div>
+                    <button type="button" id="tambahAnggotaBtn" class="btn btn-outline" style="width:100%; margin-top:10px;" onclick="onTambahAnggotaVideografi()">
+                        <i class="fa-solid fa-plus"></i> Tambah Anggota (maks 2)
+                    </button>
+                </div>
+
+                {{-- Team fields (Videografi & Desain Packaging after clicking Tambah Anggota) --}}
+                <div id="teamFields" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <span style="color:#F97316; font-weight:700; font-size:0.95rem;">Mode Tim</span>
+                        <button type="button" class="btn btn-outline" style="padding:3px 10px; font-size:0.75rem;" onclick="resetTeamMode()">← Kembali ke Individu</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Tim <span style="color:#EF4444;">*</span></label>
+                        <input type="text" name="nama_tim" class="form-control" value="{{ old('nama_tim') }}" pattern="^[^<>]+$">
+                        @error('nama_tim') <span class="form-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label id="lblSekolahTim">Sekolah <span style="color:#EF4444;">*</span></label>
+                        <input type="text" name="asal_sekolah" class="form-control" value="{{ old('asal_sekolah') }}" pattern="^[^<>]+$">
+                        @error('asal_sekolah') <span class="form-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group" id="grupPendamping">
+                        <label>Pendamping <span style="color:#EF4444;">*</span></label>
+                        <input type="text" name="guru_pembimbing" class="form-control" value="{{ old('guru_pembimbing') }}" pattern="^[^<>]+$">
+                        @error('guru_pembimbing') <span class="form-error">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Ketua Tim -->
+                    <div style="background: rgba(249,115,22,0.05); border: 1px solid rgba(249,115,22,0.2); border-radius:12px; padding:15px; margin-top:15px; margin-bottom:15px;">
+                        <span style="color:#F97316; font-weight:700; font-size:0.9rem; display:block; margin-bottom:12px;">Ketua Tim</span>
+                        <div class="form-group">
+                            <label>Nama Ketua <span style="color:#EF4444;">*</span></label>
+                            <input type="text" name="nama_ketua" class="form-control" value="{{ old('nama_ketua') }}" pattern="^[^<>]+$">
+                            @error('nama_ketua') <span class="form-error">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="input-grid">
+                            <div class="form-group">
+                                <label id="lblNisKetua">NIS/NIM Ketua <span style="color:#EF4444;">*</span></label>
+                                <input type="text" name="nis_nim_ketua" class="form-control" value="{{ old('nis_nim_ketua') }}" placeholder="Contoh: 12345678">
+                                @error('nis_nim_ketua') <span class="form-error">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="form-group">
+                                <label>No WA Ketua <span style="color:#EF4444;">*</span></label>
+                                <input type="text" name="hp_ketua" class="form-control" value="{{ old('hp_ketua') }}" placeholder="08xxx" pattern="^[0-9+\-\s]+$">
+                                @error('hp_ketua') <span class="form-error">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Anggota 1 -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid #333; border-radius: 12px; padding:15px; margin-top:15px; margin-bottom:15px;">
+                        <span style="color:#F97316; font-weight:700; font-size:0.9rem; display:block; margin-bottom:12px;">Anggota 1</span>
+                        <div class="form-group">
+                            <label>Nama Anggota 1 <span style="color:#EF4444;">*</span></label>
+                            <input type="text" name="anggota_1" class="form-control" value="{{ old('anggota_1') }}" pattern="^[^<>]+$">
+                            @error('anggota_1') <span class="form-error">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="input-grid">
+                            <div class="form-group">
+                                <label id="lblNisAnggota1">NIS/NIM Anggota 1 <span style="color:#EF4444;">*</span></label>
+                                <input type="text" name="anggota_nis_1" class="form-control" value="{{ old('anggota_nis_1') }}" placeholder="Contoh: 12345678">
+                                @error('anggota_nis_1') <span class="form-error">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="form-group">
+                                <label>No WA Anggota 1 <span style="color:#EF4444;">*</span></label>
+                                <input type="text" name="hp_1" class="form-control" value="{{ old('hp_1') }}" placeholder="08xxx" pattern="^[0-9+\-\s]+$">
+                                @error('hp_1') <span class="form-error">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="anggotaContainerTeam"></div>
+                    <button type="button" class="btn btn-outline" style="width:100%; margin-top:10px;" onclick="tambahAnggotaVideografi()">
+                        <i class="fa-solid fa-plus"></i> Tambah Anggota (Anggota 2)
+                    </button>
+                </div>
+
+                {{-- Non-team categories (ID 5 Cyber Security, etc.) --}}
                 <div id="nonWebProgFields" style="display:none;">
                     <div class="form-group">
                         <label>Nama <span style="color:#EF4444;">*</span></label>
@@ -1438,7 +1532,10 @@
     function openModal(id) {
         if(id === 'modalCreate') {
             document.getElementById('formPendaftaran').reset();
-            document.getElementById('anggotaContainer').innerHTML = '';
+            ['anggotaContainer','anggotaContainerTeam'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
             refreshAnggotaBtn();
             handleCategoryChange();
             goToStep(1);
@@ -1453,16 +1550,86 @@
         if(e.target.classList && e.target.classList.contains('modal')) e.target.style.display = "none";
     }
 
+    let teamModeActive = false;
+
+    function resetTeamMode() {
+        teamModeActive = false;
+        document.getElementById('teamFields').style.display = 'none';
+        document.getElementById('individualFields').style.display = 'block';
+        const btn = document.getElementById('tambahAnggotaBtn');
+        if (btn) btn.style.display = 'block';
+        // Clear team anggota container
+        const c = document.getElementById('anggotaContainerTeam');
+        if (c) c.innerHTML = '';
+        refreshAnggotaBtn();
+        // Re-enable individual inputs, disable team inputs
+        document.querySelectorAll('#individualFields input').forEach(input => {
+            input.required = true;
+            input.disabled = false;
+        });
+        document.querySelectorAll('#teamFields input').forEach(input => {
+            input.required = false;
+            input.disabled = true;
+        });
+        // Disable webProgFields team inputs too
+        ['nama_tim','asal_sekolah','guru_pembimbing'].forEach(name => {
+            const el = document.querySelector('#webProgFields input[name="' + name + '"]');
+            if (el) { el.required = false; el.disabled = true; }
+        });
+    }
+
+    function switchToTeamMode() {
+        teamModeActive = true;
+        document.getElementById('teamFields').style.display = 'block';
+        document.getElementById('individualFields').style.display = 'none';
+        // Enable team inputs, disable individual
+        document.querySelectorAll('#teamFields input').forEach(input => {
+            input.disabled = false;
+            if (!input.name.match(/^(anggota_2|hp_2|anggota_nis_2)/)) input.required = true;
+        });
+        document.querySelectorAll('#individualFields input').forEach(input => {
+            input.required = false;
+            input.disabled = true;
+        });
+    }
+
+    function updateCategoryLabels(val) {
+        // NIS/NIM → NIM for Videografi (ID 4)
+        const setNis = (el, isVid) => {
+            if (!el) return;
+            el.innerHTML = (isVid ? 'NIM' : 'NIS/NIM') + ' <span style="color:#EF4444;">*</span>';
+        };
+        setNis(document.getElementById('lblNisIndividual'), val == '4');
+        setNis(document.getElementById('lblNisKetua'), val == '4');
+        setNis(document.getElementById('lblNisAnggota1'), val == '4');
+
+        // Sekolah → Institusi for Videografi
+        const lblSek = document.getElementById('lblSekolahTim');
+        if (lblSek) lblSek.innerHTML = (val == '4' ? 'Institusi' : 'Sekolah') + ' <span style="color:#EF4444;">*</span>';
+
+        // Hide Pendamping for Videografi
+        const grupPend = document.getElementById('grupPendamping');
+        if (grupPend) {
+            const isVid = val == '4';
+            grupPend.style.display = isVid ? 'none' : 'block';
+            // Disable when hidden to prevent validation issues
+            grupPend.querySelectorAll('input').forEach(inp => {
+                inp.required = !isVid;
+                inp.disabled = isVid;
+            });
+        }
+    }
+
     function handleCategoryChange() {
         const select = document.querySelector('select[name="id_lomba"]');
         if (!select) return;
         const val = select.value;
-        
+
         const webProgFields = document.getElementById('webProgFields');
         const nonWebProgFields = document.getElementById('nonWebProgFields');
         const proposalInputGroup = document.getElementById('proposalInputGroup');
         const proposalInput = document.getElementById('proposalInput');
-        
+
         const subtemaInputGroup = document.getElementById('subtemaInputGroup');
         const subtemaInput = document.getElementById('subtemaInput');
         const gambarKaryaInputGroup = document.getElementById('gambarKaryaInputGroup');
@@ -1487,18 +1654,36 @@
             proposalInput.disabled = true;
         }
 
+        // Hide & disable ALL mode-specific blocks (prevent stale values on submit)
+        ['webProgFields','nonWebProgFields','individualFields','teamFields'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.style.display = 'none';
+            el.querySelectorAll('input, select, textarea').forEach(input => {
+                input.disabled = true;
+                input.required = false;
+            });
+        });
+
+        // Reset team mode flag
+        teamModeActive = false;
+        document.getElementById('anggotaContainer').innerHTML = '';
+        const c2 = document.getElementById('anggotaContainerTeam');
+        if (c2) c2.innerHTML = '';
+        refreshAnggotaBtn();
+
         if (val == '1' || val == '2') {
-            // Web Programming & Network Engineering
+            // Web Programming, Network Engineering — always team
             webProgFields.style.display = 'block';
             nonWebProgFields.style.display = 'none';
 
-            // Disable all inputs in nonWebProgFields to prevent naming collisions
+            // Disable all inputs in nonWebProgFields
             nonWebProgFields.querySelectorAll('input').forEach(input => {
                 input.required = false;
                 input.disabled = true;
             });
 
-            // Enable Web Programming inputs
+            // Enable team inputs
             webProgFields.querySelectorAll('input:not([name^="anggota_2"]):not([name^="hp_2"])').forEach(input => {
                 input.required = true;
                 input.disabled = false;
@@ -1511,8 +1696,12 @@
             proposalInputGroup.style.display = 'block';
             proposalInput.required = true;
             proposalInput.disabled = false;
-            
             proposalInput.accept = '.pdf';
+            linkVideoInputGroup.style.display = 'none';
+            if (linkVideoInput) {
+                linkVideoInput.required = false;
+                linkVideoInput.disabled = true;
+            }
             const label = proposalInputGroup.querySelector('label');
             const networkFormatNote = document.getElementById('networkFormatNote');
             if (val == '2') {
@@ -1538,34 +1727,79 @@
                     }
                 }
             }
-        } else {
-            // Non Web-Programming / Non Network-Engineering
+        } else if (val == '3' || val == '4') {
+            // Videografi (4) & Desain Packaging (3) — start individual, can add team
             webProgFields.style.display = 'none';
-            nonWebProgFields.style.display = 'block';
-            document.getElementById('anggotaContainer').innerHTML = '';
-            refreshAnggotaBtn();
+            nonWebProgFields.style.display = 'none';
 
-            // Disable all Web Programming inputs
+            // Disable webProgFields inputs so they don't conflict
             webProgFields.querySelectorAll('input').forEach(input => {
                 input.required = false;
                 input.disabled = true;
             });
 
-            // Enable non-Web Programming inputs
+            // Show individual by default
+            document.getElementById('individualFields').style.display = 'block';
+            document.getElementById('tambahAnggotaBtn').style.display = 'block';
+
+            // Enable individual inputs, disable team inputs
+            document.querySelectorAll('#individualFields input').forEach(input => {
+                input.required = true;
+                input.disabled = false;
+            });
+            document.querySelectorAll('#teamFields input').forEach(input => {
+                input.required = false;
+                input.disabled = true;
+            });
+
+            if (val == '4') {
+                // Videography: link video, no proposal
+                proposalInputGroup.style.display = 'none';
+                if (proposalInput) {
+                    proposalInput.required = false;
+                    proposalInput.disabled = true;
+                }
+                linkVideoInputGroup.style.display = 'block';
+                linkVideoInput.required = true;
+                linkVideoInput.disabled = false;
+            } else {
+                // Design Packaging: proposal
+                proposalInputGroup.style.display = 'block';
+                proposalInput.required = true;
+                proposalInput.disabled = false;
+                proposalInput.accept = '.pdf';
+                linkVideoInputGroup.style.display = 'none';
+                if (linkVideoInput) {
+                    linkVideoInput.required = false;
+                    linkVideoInput.disabled = true;
+                }
+                const label = proposalInputGroup.querySelector('label');
+                if (label) label.innerHTML = 'Upload Proposal <span style="color:#EF4444;">*</span> (PDF, maks 10MB)';
+            }
+        } else {
+            // Non team categories (ID 5 Cyber Security)
+            webProgFields.style.display = 'none';
+            nonWebProgFields.style.display = 'block';
+
+            // Disable all team inputs
+            webProgFields.querySelectorAll('input').forEach(input => {
+                input.required = false;
+                input.disabled = true;
+            });
+
+            // Enable non-team inputs
             nonWebProgFields.querySelectorAll('input').forEach(input => {
                 input.required = true;
                 input.disabled = false;
             });
 
-            if (val == '3' || val == '5') {
-                // Design Packaging (3), Cyber Security (5) need proposal/berkas
-                proposalInputGroup.style.display = 'block';
-                proposalInput.required = true;
-                proposalInput.disabled = false;
-                proposalInput.accept = '.pdf';
-                const label = proposalInputGroup.querySelector('label');
-                if (label) label.innerHTML = 'Upload Proposal <span style="color:#EF4444;">*</span> (PDF, maks 10MB)';
-            }
+            // ID 5 (Cyber Security) needs proposal
+            proposalInputGroup.style.display = 'block';
+            proposalInput.required = true;
+            proposalInput.disabled = false;
+            proposalInput.accept = '.pdf';
+            const label = proposalInputGroup.querySelector('label');
+            if (label) label.innerHTML = 'Upload Proposal <span style="color:#EF4444;">*</span> (PDF, maks 10MB)';
 
             if (subtemaInputGroup) subtemaInputGroup.style.display = 'none';
             if (subtemaInput) {
@@ -1573,25 +1807,81 @@
                 subtemaInput.disabled = true;
             }
 
-            if (val == '4') { // Videography (in db, ID 4 is Videography)
-                linkVideoInputGroup.style.display = 'block';
-                linkVideoInput.required = true;
-                linkVideoInput.disabled = false;
+            if (linkVideoInputGroup) linkVideoInputGroup.style.display = 'none';
+            if (linkVideoInput) {
+                linkVideoInput.required = false;
+                linkVideoInput.disabled = true;
             }
         }
+
+        updateCategoryLabels(val);
     }
 
-    function countAnggota() { return document.querySelectorAll('#anggotaContainer .anggota-block').length; }
+    function onTambahAnggotaVideografi() {
+        switchToTeamMode();
+    }
+
+    function tambahAnggotaVideografi() {
+        if (countAnggota() >= 1) {
+            alert('Maksimal 2 anggota tambahan (total: Ketua + Anggota 1 + Anggota 2).');
+            return;
+        }
+        if (document.getElementById('anggotaBlock-2')) return;
+
+        const div = document.createElement('div');
+        div.className = 'anggota-block';
+        div.id = 'anggotaBlock-2';
+        div.style.cssText = 'background:#1a1a1a; border:1px solid #333; border-radius:12px; padding:15px; margin-top:12px; position:relative;';
+        div.innerHTML =
+            '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+                '<span style="color:#F97316; font-weight:600; font-size:0.85rem;">Anggota 2</span>' +
+                '<button type="button" onclick="hapusAnggota(2)" style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:1.1rem;" title="Hapus anggota">' +
+                    '<i class="fa-solid fa-xmark"></i>' +
+                '</button>' +
+            '</div>' +
+            '<div class="input-grid">' +
+                '<div class="form-group" style="margin-bottom:10px;">' +
+                    '<input type="text" name="anggota_2" class="form-control" placeholder="Nama Anggota 2">' +
+                '</div>' +
+                '<div class="form-group" style="margin-bottom:10px;">' +
+                    '<input type="text" name="anggota_nis_2" class="form-control" placeholder="Nis Anggota 2">' +
+                '</div>' +
+            '</div>' +
+            '<div class="form-group" style="margin-bottom:0;">' +
+                '<input type="text" name="hp_2" class="form-control" placeholder="WA Anggota 2" pattern="^[0-9+\\-\\s]*$">' +
+            '</div>';
+        // Update NIS/NIM placeholder for videography
+        if ((document.querySelector('select[name="id_lomba"]')?.value || '') == '4') {
+            const inp = div.querySelector('input[name="anggota_nis_2"]');
+            if (inp) inp.placeholder = 'NIM Anggota 2';
+        }
+        getAnggotaContainer().appendChild(div);
+        refreshAnggotaBtn();
+    }
+
+    function getAnggotaContainer() {
+        // ID 1, 2 use webProgFields container; ID 3,4 team mode uses teamFields container
+        if (teamModeActive) return document.getElementById('anggotaContainerTeam');
+        return document.getElementById('anggotaContainer');
+    }
+
+    function countAnggota() { return getAnggotaContainer()?.querySelectorAll('.anggota-block').length || 0; }
     
     function refreshAnggotaBtn() {
-        const btn = document.getElementById('tambahAnggotaBtn');
-        if (!btn) return;
-        btn.style.display = countAnggota() >= 1 ? 'none' : 'block';
+        // Hide the "Tambah Anggota" button in both individual and team/group contexts
+        const btn1 = document.getElementById('tambahAnggotaBtn');
+        if (btn1) btn1.style.display = countAnggota() >= 1 ? 'none' : 'block';
+        // For webProgFields and teamFields buttons (no ID)
+        document.querySelectorAll('#webProgFields .btn-outline, #teamFields .btn-outline').forEach(b => {
+            if (b.textContent.includes('Tambah Anggota')) {
+                b.style.display = countAnggota() >= 1 ? 'none' : 'block';
+            }
+        });
     }
 
     function tambahAnggota() {
         if (countAnggota() >= 1) {
-            alert('Maksimal 3 anggota (Ketua + 2 Anggota) untuk Web Programming / Network Engineering.');
+            alert('Maksimal 3 anggota (Ketua + 2 Anggota) untuk Web Programming, Network Engineering, dan Videografi.');
             return;
         }
         if (document.getElementById('anggotaBlock-2')) return;
@@ -1618,7 +1908,12 @@
             '<div class="form-group" style="margin-bottom:0;">' +
                 '<input type="text" name="hp_2" class="form-control" placeholder="WA Anggota 2" pattern="^[0-9+\\-\\s]*$">' +
             '</div>';
-        document.getElementById('anggotaContainer').appendChild(div);
+        // Update NIS/NIM label for videography
+        if ((document.querySelector('select[name="id_lomba"]')?.value || '') == '4') {
+            const inp = div.querySelector('input[name="anggota_nis_2"]');
+            if (inp) inp.placeholder = 'NIM Anggota 2';
+        }
+        getAnggotaContainer().appendChild(div);
         refreshAnggotaBtn();
     }
 
@@ -1632,11 +1927,11 @@
         const currentStep = document.getElementById('step' + step);
         const inputs = currentStep.querySelectorAll('input, select');
         for (const input of inputs) {
-            if (input.required) {
-                if (!input.value) {
-                    input.reportValidity();
-                    return false;
-                }
+            if (input.disabled) continue;
+            if (!input.offsetParent) continue; // skip hidden (display:none) elements
+            if (input.required && !input.value) {
+                input.reportValidity();
+                return false;
             }
         }
         return true;
