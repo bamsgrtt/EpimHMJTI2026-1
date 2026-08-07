@@ -765,30 +765,6 @@
                     </div>
                     @endif
                 </div>
-                <div class="detail-item">
-                    <label>Bukti Twibon</label>
-                    @if($data->bukti_twibon)
-                        @php
-                            $extTwibon = strtolower(pathinfo($data->bukti_twibon, PATHINFO_EXTENSION));
-                            $isTwibonImg = in_array($extTwibon, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
-                        @endphp
-                        @if($isTwibonImg)
-                            <div style="margin-top: 8px;">
-                                <a href="{{ asset('uploads/twibon/' . $data->bukti_twibon) }}" target="_blank" title="Klik untuk memperbesar">
-                                    <img src="{{ asset('uploads/twibon/' . $data->bukti_twibon) }}" alt="Bukti Twibon" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); display: block; object-fit: contain;">
-                                </a>
-                            </div>
-                        @else
-                            <strong>
-                                <a href="{{ asset('uploads/twibon/' . $data->bukti_twibon) }}" target="_blank" style="color: #60A5FA; text-decoration: none;">
-                                    <i class="fa-solid fa-file-pdf"></i> Lihat PDF Bukti Twibon
-                                </a>
-                            </strong>
-                        @endif
-                    @else
-                        <strong style="color: #EF4444;">Belum diunggah</strong>
-                    @endif
-                </div>
                 </div>{{-- end sosmed-twibon-grid --}}
             </div>
             <button class="btn btn-outline" style="width:100%; margin-top:20px;" onclick="closeModal('modalDetail{{ $data->id }}')">Tutup</button>
@@ -1186,7 +1162,7 @@
             </div>
         </div>
 
-        <form id="formPendaftaran" action="{{ route('Lomba.peserta.store') }}" method="POST" enctype="multipart/form-data">
+        <form id="formPendaftaran" action="{{ route('Lomba.peserta.store') }}" method="POST" enctype="multipart/form-data" novalidate>
             @csrf
             <div id="step1">
                 <div class="form-group">
@@ -1427,7 +1403,7 @@
             <div id="step3" style="display:none;">
                 <div class="form-group">
                     <label>Judul Karya <span style="color:#EF4444;">*</span></label>
-                    <input type="text" name="judul_karya" class="form-control" placeholder="Masukkan judul karya">
+                    <input type="text" name="judul_karya" class="form-control" placeholder="Masukkan judul karya" required>
                     @error('judul_karya') <span class="form-error">{{ $message }}</span> @enderror
                 </div>
 
@@ -1529,8 +1505,8 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     const PAYMENT_MAP = @json($paymentMap);
-    function openModal(id) {
-        if(id === 'modalCreate') {
+    function openModal(id, isError = false) {
+        if(id === 'modalCreate' && !isError) {
             document.getElementById('formPendaftaran').reset();
             ['anggotaContainer','anggotaContainerTeam'].forEach(id => {
                 const el = document.getElementById(id);
@@ -1591,6 +1567,8 @@
             input.required = false;
             input.disabled = true;
         });
+        const val = document.querySelector('select[name="id_lomba"]')?.value;
+        if (val) updateCategoryLabels(val);
     }
 
     function updateCategoryLabels(val) {
@@ -1607,15 +1585,15 @@
         const lblSek = document.getElementById('lblSekolahTim');
         if (lblSek) lblSek.innerHTML = (val == '4' ? 'Institusi' : 'Sekolah') + ' <span style="color:#EF4444;">*</span>';
 
-        // Hide Pendamping for Videografi
+        // Hide Pendamping for Videografi or non-team mode
         const grupPend = document.getElementById('grupPendamping');
         if (grupPend) {
             const isVid = val == '4';
-            grupPend.style.display = isVid ? 'none' : 'block';
-            // Disable when hidden to prevent validation issues
+            const shouldEnable = teamModeActive && !isVid;
+            grupPend.style.display = shouldEnable ? 'block' : 'none';
             grupPend.querySelectorAll('input').forEach(inp => {
-                inp.required = !isVid;
-                inp.disabled = isVid;
+                inp.required = shouldEnable;
+                inp.disabled = !shouldEnable;
             });
         }
     }
@@ -1925,14 +1903,32 @@
 
     function validateStep(step) {
         const currentStep = document.getElementById('step' + step);
-        const inputs = currentStep.querySelectorAll('input, select');
+        if (!currentStep) return true;
+
+        const wasHidden = (currentStep.style.display === 'none');
+        if (wasHidden) {
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+            currentStep.style.display = 'block';
+        }
+
+        const inputs = currentStep.querySelectorAll('input, select, textarea');
         for (const input of inputs) {
             if (input.disabled) continue;
-            if (!input.offsetParent) continue; // skip hidden (display:none) elements
-            if (input.required && !input.value) {
+            // Skip inputs inside hidden sub-containers (e.g. webProgFields when in individual mode)
+            if (!input.offsetParent && input.type !== 'file') continue;
+            if (input.type === 'file' && !input.parentElement?.offsetParent) continue;
+
+            if (!input.checkValidity()) {
+                goToStep(step);
                 input.reportValidity();
                 return false;
             }
+        }
+
+        if (wasHidden) {
+            currentStep.style.display = 'none';
         }
         return true;
     }
@@ -1986,6 +1982,18 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         handleCategoryChange();
+
+        const formPendaftar = document.getElementById('formPendaftaran');
+        if (formPendaftar) {
+            formPendaftar.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (!validateStep(1)) return false;
+                if (!validateStep(2)) return false;
+                if (!validateStep(3)) return false;
+                this.submit();
+            });
+        }
+
         @if(old('id_lomba') == 1 && old('anggota_2'))
             tambahAnggota();
             const a2 = document.querySelector('input[name="anggota_2"]');
@@ -1998,7 +2006,16 @@
     });
 
     @if($errors->any())
-        document.addEventListener('DOMContentLoaded', function () { openModal('modalCreate'); });
+        document.addEventListener('DOMContentLoaded', function () {
+            openModal('modalCreate', true);
+            @if($errors->hasAny(['bukti_bayar', 'bukti_status_aktif', 'bukti_sosmed']))
+                goToStep(2);
+            @elseif($errors->hasAny(['proposal', 'orisinalitas', 'judul_karya', 'accepted_integrity', 'subtema', 'link_video_karya']))
+                goToStep(3);
+            @else
+                goToStep(1);
+            @endif
+        });
     @endif
 
     @if(session('success'))
